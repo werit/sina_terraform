@@ -13,21 +13,30 @@ provider "docker" {
 resource "docker_image" "nodered_image" {
   name = "nodered/node-red:latest"
 }
+
+resource "random_string" "random" {
+  count = 2
+  length = 4
+  special = false
+  upper = false
+}
+
 resource "docker_container" "nodered_container" {
-  name  = "first_node_container"
+  count = 2
+  name  = join("-",["nodered",random_string.random[count.index].result])
   image = docker_image.nodered_image.latest
   ports {
     internal = 1880
-    external = 1880
+    external = 1880 + count.index
   }
 }
 
 output "Ip-address" {
-  value = join(":", [docker_container.nodered_container.ip_address, docker_container.nodered_container.ports[0].external])
+  value = [for i in docker_container.nodered_container[*]: join(":", [i.ip_address,i.ports[0].external])]
   description = "The ip address and port of docker container"
 }
 
 output "Container-name" {
-  value = docker_container.nodered_container.name
+  value = docker_container.nodered_container[*].name
   description = "Name of docker container"
 }
